@@ -1,0 +1,332 @@
+{
+  "name": "Лавина",
+  "version": "1.0.0",
+  "handlers": [
+    {
+      "type": "event",
+      "event": "player_join",
+      "position": [0, 0],
+      "operations": [
+        { "action": "player_give_items", "args": { "player": "%player%", "item": "snowball", "count": "1" } },
+        { "action": "player_clear_effects", "args": { "player": "%player%" } },
+        { "action": "player_send_message", "args": { "player": "%player%", "message": "&b&lЛавина&r &7— ПКМ снежком, чтобы встать/выйти из очереди." } }
+      ]
+    },
+    {
+      "type": "event",
+      "event": "player_right_click",
+      "position": [0, 1],
+      "operations": [
+        { "action": "cancel_event", "args": {} },
+        {
+          "action": "if_variable_equals",
+          "args": { "variable": "gameStatus", "value": "running" },
+          "operations": [
+            { "action": "player_send_message", "args": { "player": "%player%", "message": "&cИгра уже идёт, подожди следующего раунда." } }
+          ],
+          "else": [
+            {
+              "action": "if_variable_equals",
+              "args": { "variable": "%varMap(queueMap, %player%)%", "value": "1" },
+              "operations": [
+                { "action": "set_variable", "args": { "variable": "queueMap", "map": "queueMap", "key": "%player%", "value": "0", "replaced_value": "1" } },
+                { "action": "set_variable", "args": { "variable": "queueCount", "value": "%math(%var(queueCount) - 1)%" } },
+                { "action": "player_send_message", "args": { "player": "%player%", "message": "&eТы вышел из очереди. &7(%var(queueCount)/2)" } }
+              ],
+              "else": [
+                { "action": "set_variable", "args": { "variable": "queueMap", "map": "queueMap", "key": "%player%", "value": "1", "replaced_value": "0" } },
+                { "action": "set_variable", "args": { "variable": "queueCount", "value": "%math(%var(queueCount) + 1)%" } },
+                { "action": "player_send_message", "args": { "player": "%player%", "message": "&aТы в очереди! &7(%var(queueCount)/2)" } },
+                {
+                  "action": "if_variable_greater_or_equals",
+                  "args": { "variable": "queueCount", "value": "2" },
+                  "operations": [ { "action": "start_process", "args": { "process": "start_round" } } ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "event",
+      "event": "player_respawn",
+      "position": [0, 2],
+      "operations": [
+        {
+          "action": "if_variable_equals",
+          "args": { "variable": "gameStatus", "value": "running" },
+          "operations": [
+            { "action": "set_variable", "args": { "variable": "myCP", "value": "%varMap(checkpointMap, %player%)%" } },
+            { "action": "if_variable_equals", "args": { "variable": "myCP", "value": "1" }, "operations": [ { "action": "player_teleport", "args": { "player": "%player%", "position": "%var(cp1X)%, %math(%var(cp1Y) + 1)%, %var(cp1Z)%" } } ] },
+            { "action": "if_variable_equals", "args": { "variable": "myCP", "value": "2" }, "operations": [ { "action": "player_teleport", "args": { "player": "%player%", "position": "%var(cp2X)%, %math(%var(cp2Y) + 1)%, %var(cp2Z)%" } } ] },
+            { "action": "if_variable_equals", "args": { "variable": "myCP", "value": "3" }, "operations": [ { "action": "player_teleport", "args": { "player": "%player%", "position": "%var(cp3X)%, %math(%var(cp3Y) + 1)%, %var(cp3Z)%" } } ] },
+            { "action": "if_variable_equals", "args": { "variable": "myCP", "value": "0" }, "operations": [ { "action": "player_teleport", "args": { "player": "%player%", "position": "0, 71, 0" } } ] },
+            { "action": "player_set_health", "args": { "player": "%player%", "health": "20" } },
+            { "action": "player_add_effect", "args": { "player": "%player%", "effect": "blindness", "duration": "40", "amplifier": "0" } },
+            { "action": "player_add_effect", "args": { "player": "%player%", "effect": "slowness", "duration": "40", "amplifier": "1" } },
+            { "action": "set_variable", "args": { "variable": "aliveMap", "map": "aliveMap", "key": "%player%", "value": "1", "replaced_value": "0" } },
+            { "action": "player_send_message", "args": { "player": "%player%", "message": "&7Ты отлежался в снегу и вернулся на чекпоинт." } }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "process",
+      "name": "start_round",
+      "position": [1, 0],
+      "operations": [
+        { "action": "set_variable", "args": { "variable": "gameStatus", "value": "running" } },
+        { "action": "set_variable", "args": { "variable": "countdown", "value": "5" } },
+        { "action": "start_process", "args": { "process": "generate_track" } },
+        { "action": "control_wait", "args": { "ticks": "10" } },
+        { "action": "select_all_players", "args": { "variable": "allPlayers" } },
+        {
+          "action": "repeat_multi_times",
+          "args": { "times": "%var(queueCount)%" },
+          "operations": [
+            { "action": "player_teleport", "args": { "player": "%player%", "position": "0, 71, 0" } },
+            { "action": "player_set_health", "args": { "player": "%player%", "health": "20" } },
+            { "action": "player_clear_effects", "args": { "player": "%player%" } },
+            { "action": "set_variable", "args": { "variable": "aliveMap", "map": "aliveMap", "key": "%player%", "value": "1", "replaced_value": "0" } },
+            { "action": "set_variable", "args": { "variable": "checkpointMap", "map": "checkpointMap", "key": "%player%", "value": "0", "replaced_value": "0" } }
+          ]
+        },
+        { "action": "clear_variable_map", "args": { "variable": "queueMap", "map": "queueMap" } },
+        { "action": "set_variable", "args": { "variable": "queueCount", "value": "0" } },
+        {
+          "action": "repeat_multi_times",
+          "args": { "times": "5" },
+          "operations": [
+            { "action": "player_send_title", "args": { "player": "%player%", "title": "&e&l%var(countdown)%", "subtitle": "", "fade_in": "5", "stay": "15", "fade_out": "5" } },
+            { "action": "player_play_sound", "args": { "player": "%player%", "sound": "block.note_block.pling", "volume": "1", "pitch": "1" } },
+            { "action": "set_variable", "args": { "variable": "countdown", "value": "%math(%var(countdown) - 1)%" } },
+            { "action": "control_wait", "args": { "seconds": "1" } }
+          ]
+        },
+        { "action": "player_send_title", "args": { "player": "%player%", "title": "&c&lБЕГИ!", "subtitle": "", "fade_in": "5", "stay": "20", "fade_out": "5" } },
+        { "action": "player_play_sound", "args": { "player": "%player%", "sound": "entity.lightning_bolt.thunder", "volume": "1", "pitch": "1" } },
+        { "action": "start_process", "args": { "process": "avalanche" } },
+        { "action": "start_process", "args": { "process": "check_checkpoints" } },
+        { "action": "start_process", "args": { "process": "check_finish" } }
+      ]
+    },
+    {
+      "type": "process",
+      "name": "generate_track",
+      "position": [2, 0],
+      "operations": [
+        { "action": "world_set_region", "args": { "from": "-12, 50, -40", "to": "12, 96, 215", "block": "air" } },
+        { "action": "world_set_region", "args": { "from": "-3, 70, -2", "to": "3, 70, 2", "block": "snow_block" } },
+        { "action": "world_set_region", "args": { "from": "-3, 70, 200", "to": "3, 70, 212", "block": "packed_ice" } },
+        { "action": "set_variable", "args": { "variable": "genX", "value": "0" } },
+        { "action": "set_variable", "args": { "variable": "genY", "value": "70" } },
+        { "action": "set_variable", "args": { "variable": "genZ", "value": "4" } },
+        { "action": "set_variable", "args": { "variable": "genIter", "value": "1" } },
+        {
+          "action": "repeat_multi_times",
+          "args": { "times": "48" },
+          "operations": [
+            { "action": "set_variable", "args": { "variable": "genX", "value": "%math(%var(genX) + %random(-3, 3))%" } },
+            { "action": "set_variable", "args": { "variable": "genY", "value": "%math(%var(genY) + %random(-1, 1))%" } },
+            { "action": "set_variable", "args": { "variable": "genZ", "value": "%math(%var(genZ) + 4)%" } },
+            {
+              "action": "if_variable_equals",
+              "args": { "variable": "genIter", "value": "12" },
+              "operations": [
+                { "action": "world_set_region", "args": { "from": "%math(%var(genX) - 3)%, %var(genY)%, %math(%var(genZ) - 2)%", "to": "%math(%var(genX) + 3)%, %var(genY)%, %math(%var(genZ) + 2)%", "block": "packed_ice" } },
+                { "action": "set_variable", "args": { "variable": "cp1X", "value": "%var(genX)%" } },
+                { "action": "set_variable", "args": { "variable": "cp1Y", "value": "%math(%var(genY) + 1)%" } },
+                { "action": "set_variable", "args": { "variable": "cp1Z", "value": "%var(genZ)%" } }
+              ]
+            },
+            {
+              "action": "if_variable_equals",
+              "args": { "variable": "genIter", "value": "24" },
+              "operations": [
+                { "action": "world_set_region", "args": { "from": "%math(%var(genX) - 3)%, %var(genY)%, %math(%var(genZ) - 2)%", "to": "%math(%var(genX) + 3)%, %var(genY)%, %math(%var(genZ) + 2)%", "block": "packed_ice" } },
+                { "action": "set_variable", "args": { "variable": "cp2X", "value": "%var(genX)%" } },
+                { "action": "set_variable", "args": { "variable": "cp2Y", "value": "%math(%var(genY) + 1)%" } },
+                { "action": "set_variable", "args": { "variable": "cp2Z", "value": "%var(genZ)%" } }
+              ]
+            },
+            {
+              "action": "if_variable_equals",
+              "args": { "variable": "genIter", "value": "36" },
+              "operations": [
+                { "action": "world_set_region", "args": { "from": "%math(%var(genX) - 3)%, %var(genY)%, %math(%var(genZ) - 2)%", "to": "%math(%var(genX) + 3)%, %var(genY)%, %math(%var(genZ) + 2)%", "block": "packed_ice" } },
+                { "action": "set_variable", "args": { "variable": "cp3X", "value": "%var(genX)%" } },
+                { "action": "set_variable", "args": { "variable": "cp3Y", "value": "%math(%var(genY) + 1)%" } },
+                { "action": "set_variable", "args": { "variable": "cp3Z", "value": "%var(genZ)%" } }
+              ]
+            },
+            {
+              "action": "if_variable_equals",
+              "args": { "variable": "genIter", "value": "12" },
+              "negate": true,
+              "operations": [
+                {
+                  "action": "if_variable_equals",
+                  "args": { "variable": "genIter", "value": "24" },
+                  "negate": true,
+                  "operations": [
+                    {
+                      "action": "if_variable_equals",
+                      "args": { "variable": "genIter", "value": "36" },
+                      "negate": true,
+                      "operations": [
+                        {
+                          "action": "if_variable_equals",
+                          "args": { "variable": "%random(0, 3)%", "value": "0" },
+                          "operations": [ { "action": "world_set_region", "args": { "from": "%math(%var(genX) - 1)%, %var(genY)%, %math(%var(genZ) - 1)%", "to": "%math(%var(genX) + 1)%, %var(genY)%, %math(%var(genZ) + 1)%", "block": "ice" } } ],
+                          "else": [ { "action": "world_set_region", "args": { "from": "%math(%var(genX) - 1)%, %var(genY)%, %math(%var(genZ) - 1)%", "to": "%math(%var(genX) + 1)%, %var(genY)%, %math(%var(genZ) + 1)%", "block": "snow_block" } } ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            { "action": "set_variable", "args": { "variable": "genIter", "value": "%math(%var(genIter) + 1)%" } }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "process",
+      "name": "avalanche",
+      "position": [3, 0],
+      "operations": [
+        { "action": "set_variable", "args": { "variable": "avalancheZ", "value": "-30" } },
+        { "action": "set_variable", "args": { "variable": "avalancheDelay", "value": "4" } },
+        { "action": "set_variable", "args": { "variable": "avalancheTick", "value": "0" } },
+        {
+          "action": "repeat_while",
+          "args": { "variable": "avalancheZ", "less": "205" },
+          "operations": [
+            { "action": "world_set_region", "args": { "from": "-12, 50, %math(%var(avalancheZ) - 5)%", "to": "12, 96, %math(%var(avalancheZ) - 3)%", "block": "air" } },
+            { "action": "set_variable", "args": { "variable": "avalancheZ", "value": "%math(%var(avalancheZ) + 2)%" } },
+            { "action": "world_set_region", "args": { "from": "-12, 50, %var(avalancheZ)%", "to": "12, 96, %math(%var(avalancheZ) + 2)%", "block": "snow_block" } },
+            { "action": "select_all_players", "args": { "variable": "allPlayers" } },
+            {
+              "action": "if_variable_equals",
+              "args": { "variable": "%varMap(aliveMap, %player%)%", "value": "1" },
+              "operations": [
+                {
+                  "action": "if_variable_equals",
+                  "args": { "variable": "%player_z%", "less": "%var(avalancheZ)%" },
+                  "operations": [
+                    { "action": "set_variable", "args": { "variable": "aliveMap", "map": "aliveMap", "key": "%player%", "value": "0", "replaced_value": "1" } },
+                    { "action": "player_damage", "args": { "player": "%player%", "damage": "100" } }
+                  ]
+                }
+              ]
+            },
+            { "action": "set_variable", "args": { "variable": "avalancheTick", "value": "%math(%var(avalancheTick) + 1)%" } },
+            {
+              "action": "if_variable_greater_or_equals",
+              "args": { "variable": "avalancheTick", "value": "8" },
+              "operations": [
+                { "action": "set_variable", "args": { "variable": "avalancheTick", "value": "0" } },
+                {
+                  "action": "if_variable_greater_or_equals",
+                  "args": { "variable": "avalancheDelay", "value": "2" },
+                  "operations": [
+                    { "action": "set_variable", "args": { "variable": "avalancheDelay", "value": "%math(%var(avalancheDelay) - 1)%" } },
+                    { "action": "player_send_message", "args": { "player": "%player%", "message": "&c&lЛавина ускоряется!" } },
+                    { "action": "player_play_sound", "args": { "player": "%player%", "sound": "entity.lightning_bolt.thunder", "volume": "1", "pitch": "1" } }
+                  ]
+                }
+              ]
+            },
+            { "action": "control_wait", "args": { "seconds": "%var(avalancheDelay)%" } }
+          ]
+        },
+        {
+          "action": "if_variable_equals",
+          "args": { "variable": "gameStatus", "value": "running" },
+          "operations": [
+            { "action": "player_send_message", "args": { "player": "%player%", "message": "&c&lЛавина сгребла всё! Раунд окончен." } },
+            { "action": "start_process", "args": { "process": "reset_round" } }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "process",
+      "name": "check_checkpoints",
+      "position": [4, 0],
+      "operations": [
+        {
+          "action": "repeat_while",
+          "args": { "variable": "gameStatus", "equals": "running" },
+          "operations": [
+            { "action": "select_all_players", "args": { "variable": "allPlayers" } },
+            {
+              "action": "if_variable_equals",
+              "args": { "variable": "%varMap(aliveMap, %player%)%", "value": "1" },
+              "operations": [
+                { "action": "if_variable_greater_or_equals", "args": { "variable": "%player_z%", "value": "%var(cp1Z)%" }, "operations": [ { "action": "set_variable", "args": { "variable": "checkpointMap", "map": "checkpointMap", "key": "%player%", "value": "1", "replaced_value": "0" } } ] },
+                { "action": "if_variable_greater_or_equals", "args": { "variable": "%player_z%", "value": "%var(cp2Z)%" }, "operations": [ { "action": "set_variable", "args": { "variable": "checkpointMap", "map": "checkpointMap", "key": "%player%", "value": "2", "replaced_value": "1" } } ] },
+                { "action": "if_variable_greater_or_equals", "args": { "variable": "%player_z%", "value": "%var(cp3Z)%" }, "operations": [ { "action": "set_variable", "args": { "variable": "checkpointMap", "map": "checkpointMap", "key": "%player%", "value": "3", "replaced_value": "2" } } ] }
+              ]
+            },
+            { "action": "control_wait", "args": { "ticks": "10" } }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "process",
+      "name": "check_finish",
+      "position": [5, 0],
+      "operations": [
+        {
+          "action": "repeat_while",
+          "args": { "variable": "gameStatus", "equals": "running" },
+          "operations": [
+            { "action": "select_all_players", "args": { "variable": "allPlayers" } },
+            {
+              "action": "if_variable_equals",
+              "args": { "variable": "%varMap(aliveMap, %player%)%", "value": "1" },
+              "operations": [
+                {
+                  "action": "if_variable_greater_or_equals",
+                  "args": { "variable": "%player_z%", "value": "200" },
+                  "operations": [
+                    { "action": "set_variable", "args": { "variable": "gameStatus", "value": "finished" } },
+                    { "action": "set_variable", "args": { "variable": "winMap", "map": "winMap", "key": "%player%", "value": "%math(%varMap(winMap, %player%) + 1)%", "replaced_value": "%varMap(winMap, %player%)%" } },
+                    { "action": "player_send_title", "args": { "player": "%player%", "title": "&6&lПОБЕДА!", "subtitle": "&eТы обогнал лавину", "fade_in": "10", "stay": "50", "fade_out": "10" } },
+                    { "action": "player_play_sound", "args": { "player": "%player%", "sound": "ui.toast.challenge_complete", "volume": "1", "pitch": "1" } },
+                    { "action": "spawn_firework", "args": { "position": "%player_x%, %player_y%, %player_z%" } },
+                    { "action": "player_send_message", "args": { "player": "%player%", "message": "&6&l%player% &eпобедил! Всего побед: &a%varMap(winMap, %player%)%" } },
+                    { "action": "start_process", "args": { "process": "reset_round" } }
+                  ]
+                }
+              ]
+            },
+            { "action": "control_wait", "args": { "ticks": "10" } }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "process",
+      "name": "reset_round",
+      "position": [6, 0],
+      "operations": [
+        { "action": "control_wait", "args": { "ticks": "100" } },
+        { "action": "world_set_region", "args": { "from": "-12, 50, -40", "to": "12, 96, 215", "block": "air" } },
+        { "action": "set_variable", "args": { "variable": "gameStatus", "value": "idle" } },
+        { "action": "set_variable", "args": { "variable": "queueCount", "value": "0" } },
+        { "action": "set_variable", "args": { "variable": "avalancheZ", "value": "-30" } },
+        { "action": "set_variable", "args": { "variable": "avalancheDelay", "value": "4" } },
+        { "action": "set_variable", "args": { "variable": "countdown", "value": "5" } },
+        { "action": "clear_variable_map", "args": { "variable": "queueMap", "map": "queueMap" } },
+        { "action": "clear_variable_map", "args": { "variable": "aliveMap", "map": "aliveMap" } },
+        { "action": "clear_variable_map", "args": { "variable": "checkpointMap", "map": "checkpointMap" } },
+        { "action": "player_send_message", "args": { "player": "%player%", "message": "&a&lРаунд окончен.&r &eПКМ снежком — новый забег!" } }
+      ]
+    }
+  ]
+}
